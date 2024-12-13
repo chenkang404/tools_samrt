@@ -3,6 +3,33 @@ from collections import defaultdict
 import json
 import os
 
+def sace_xlsx(save_file,trees,table_names):
+
+    out_save_path = os.path.join("./save/",save_file,save_file+".xlsx")
+    with pd.ExcelWriter(out_save_path,engine="openpyxl") as writer:
+
+        for idx, one_tree in enumerate(trees):
+            # print(one_tree)
+            # print(len(one_tree))
+            max_level_num = max([len(one_["questions"]) for one_ in one_tree])
+            # print(max_level_num)
+            data_all = []
+            for one_chain in one_tree:
+                save_dict = {}
+                questions = one_chain["questions"]
+                conclustions = one_chain["conclustions"][0]
+                for i in range(max_level_num):
+                    save_dict[f"{i+1}_级问题"] = questions[i] if i<len(questions) else ''
+                for one_dict in conclustions:
+                    save_dict[list(one_dict.keys())[0]] = list(one_dict.values())[0]
+                # print(one_chain["questions"])
+                # print(one_chain["conclustions"][0])
+                data_all.append(save_dict)
+            df_one = pd.DataFrame(data_all)
+            sheetName = table_names[idx]
+            # print(f"sheet name len:{len(sheetName)}")
+            # print(sheetName)
+            df_one.to_excel(writer,sheet_name=sheetName,index=False)
 
 
 # 用于提取 `padding-left` 值的函数
@@ -29,6 +56,11 @@ for file in os.listdir("./HTML_ZZ_name")[:1]:
     print(file_path)
     with open(file_path, "r", encoding="utf-8") as file:
         soup = BeautifulSoup(file, "html.parser")
+    #获得tag name
+    tags = []
+    uls = soup.find_all("li")
+    for one in uls:
+        tags.append(one.get_text(strip=True))
 
     # 遍历表格
     tables = soup.find_all("table",class_="table")  # 替换为实际表格 ID
@@ -116,11 +148,13 @@ for file in os.listdir("./HTML_ZZ_name")[:1]:
             
         
         
-        to_save_file_path = os.path.join(save_path_file,"#".join(conc_names)+".json") 
+        # to_save_file_path = os.path.join(save_path_file,"#".join(conc_names)+".json")
+        to_save_file_path = os.path.join(save_path_file,tags[index_]+".json")
+        table_names.append(tags[index_])
         with open(to_save_file_path,"w")as f:
             json.dump(tree,f,ensure_ascii=False,indent=2)
                     
-                
+     sace_xlsx(save_file,trees,tags)             
 
 # 打印结果
 # print(json.dumps(tree, ensure_ascii=False, indent=2))
